@@ -5,6 +5,8 @@ from bakery import assert_equal
 from dataclasses import dataclass
 from string import ascii_uppercase
 import random
+import io
+import base64
 import PIL
 
 
@@ -51,9 +53,10 @@ class State:
 def index(state: State) -> Page:
     """Main menu page with a button to start a new game and a button to view
     results of previous games."""
+    animation = generate_animation_html(generate_hangman_animation_frame(state))
     return Page(state, [
         "Welcome to Hangman!",
-        Image("title_screen.png"),
+        animation,
         Button("New Game", new_game)
     ])
     
@@ -266,6 +269,37 @@ def generate_hangman_animation_frame(state: State) -> PIL.Image:
     return frame
 
 
+def generate_animation_uri(animation: PIL.Image) -> str:
+    """Given a hangman animation, generates a URI for accessing it.
+    
+    Args:
+        animation (PIL.Image): The hangman animation
+    Returns:
+        str: The URI for the animation
+    """
+    # create a new bytes buffer and save the animation to it
+    buffer = io.BytesIO()
+    animation.save(buffer, "PNG")
+
+    # encode the byte data to base64 for use in the URI
+    animation_data = buffer.getvalue()
+    base64_data = base64.b64encode(animation_data).decode("utf-8")
+
+    # return the URI
+    return "data:image/png;base64," + base64_data
+
+
+def generate_animation_html(animation: PIL.Image) -> str:
+    """Given a hangman animation, generates an html tag to embed it to a Page.
+    
+    Args:
+        animation (PIL.Image): The hangman animation
+    Returns:
+        str: The html tag for the animation
+    """
+    return f'<img src="{generate_animation_uri(animation)}"/>'
+
+
 # unit tests for is_valid_guess
 assert_equal(is_valid_guess(["C"], "A"), True)
 assert_equal(is_valid_guess(["H", "B"], "B"), False)
@@ -295,5 +329,5 @@ new_state = State(
     []  # previous_games
 )
 
-generate_hangman_animation(new_state)
-#start_server(new_state)
+# generate_hangman_animation(new_state)
+start_server(new_state)
