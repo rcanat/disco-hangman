@@ -1,12 +1,33 @@
+import PIL.Image
+import PIL.ImageDraw
 from drafter import *
 from bakery import assert_equal
-from string import ascii_uppercase
 from dataclasses import dataclass
+from string import ascii_uppercase
 import random
+import PIL
 
 
+# general constants
 MAX_GUESSES = 6
 WORD_LIST = ["STINKY", "CARPET", "PYTHON", "HAMBURGER", "BUCKET"]
+
+# graphics constants
+IMAGE_WIDTH = 300
+IMAGE_HEIGHT = 300
+IMAGE_SIZE = (IMAGE_WIDTH, IMAGE_HEIGHT)
+
+GALLOWS_BASE_XCENTER = IMAGE_WIDTH - 67
+GALLOWS_BASE_YPOS = 200
+GALLOWS_BASE_LENGTH_LEFT = 33
+GALLOWS_BASE_LENGTH_RIGHT = 33
+GALLOWS_POST_LENGTH = 167
+GALLOWS_CROSSBEAM_LENGTH = 100
+GALLOWS_ROPE_LENGTH = 33
+GALLOWS_SUPPORT_SIZE = 33
+
+HANGMAN_XCENTER = GALLOWS_BASE_XCENTER - GALLOWS_CROSSBEAM_LENGTH
+HANGMAN_YTOP = GALLOWS_BASE_YPOS - GALLOWS_POST_LENGTH + GALLOWS_ROPE_LENGTH
 
 
 @dataclass
@@ -194,6 +215,57 @@ def has_lost(state: State) -> bool:
     return state.wrong_guesses == MAX_GUESSES
 
 
+def generate_hangman_animation(state: State) -> None:
+    """Based on the given State, generates an animation to display the current
+    hangman. This animation is saved as hangman.gif.
+    
+    Args:
+        state (State): The current State of the site
+    """
+    frame = generate_hangman_animation_frame(state)
+    frame.save("hangman.png")
+
+
+def generate_hangman_animation_frame(state: State) -> PIL.Image:
+    """Based on the given State, generates a single frame to display the
+    current hangman.
+
+    Args:
+        state (State): The current State of the site
+    Returns:
+        PIL.Image: The generated animation frame
+    """
+    # generate a blank white image
+    frame = PIL.Image.new("RGB", IMAGE_SIZE, "white")
+    draw = PIL.ImageDraw.Draw(frame)
+    
+    # draw the gallows
+    draw.line((
+
+        # base
+        (GALLOWS_BASE_XCENTER - GALLOWS_BASE_LENGTH_LEFT, GALLOWS_BASE_YPOS),
+        (GALLOWS_BASE_XCENTER + GALLOWS_BASE_LENGTH_RIGHT, GALLOWS_BASE_YPOS),
+
+        # post
+        (GALLOWS_BASE_XCENTER, GALLOWS_BASE_YPOS),
+        (GALLOWS_BASE_XCENTER, GALLOWS_BASE_YPOS - GALLOWS_POST_LENGTH),
+
+        # support
+        (GALLOWS_BASE_XCENTER, GALLOWS_BASE_YPOS - GALLOWS_POST_LENGTH + GALLOWS_SUPPORT_SIZE),
+        (GALLOWS_BASE_XCENTER - GALLOWS_SUPPORT_SIZE, GALLOWS_BASE_YPOS - GALLOWS_POST_LENGTH),
+        (GALLOWS_BASE_XCENTER, GALLOWS_BASE_YPOS - GALLOWS_POST_LENGTH),
+
+        # crossbar
+        (HANGMAN_XCENTER, GALLOWS_BASE_YPOS - GALLOWS_POST_LENGTH),
+
+        # rope
+        (HANGMAN_XCENTER, HANGMAN_YTOP)
+
+    ), "black", 5)
+
+    return frame
+
+
 # unit tests for is_valid_guess
 assert_equal(is_valid_guess(["C"], "A"), True)
 assert_equal(is_valid_guess(["H", "B"], "B"), False)
@@ -214,10 +286,14 @@ assert_equal(has_lost(State("", "DRAFTER", [], 5, [])), False)
 
 # start the site server
 # hide_debug_information()
-start_server(State(
+
+new_state = State(
     "", # name
     "", # word
     [], # guessed_letters
     0,  # wrong_guesses
     []  # previous_games
-))
+)
+
+generate_hangman_animation(new_state)
+#start_server(new_state)
