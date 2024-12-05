@@ -77,10 +77,9 @@ class State:
 def index(state: State) -> Page:
     """Main menu page with a button to start a new game and a button to view
     results of previous games."""
-    animation = generate_animation_html(generate_hangman_animation_frame(state))
     return Page(state, [
         "Welcome to Hangman!",
-        animation,
+        Image("title_screen.png"),
         Button("New Game", new_game)
     ])
     
@@ -108,20 +107,8 @@ def initialize_game(state: State, name: str) -> Page:
 def game_page(state: State) -> Page:
     """The main game page where the user can guess letters"""
     
-    # create a string that shows the positions of guessed characters
-    word_display = ""
-    for letter in state.word:
-        
-        # show the letter if it has been guessed
-        if letter in state.guessed_letters:
-            word_display += letter
-            
-        # show '_' if the letter has not been guessed
-        else:
-            word_display += '_'
-    
-    # add a space between each letter in the display
-    word_display = ' '.join(word_display)
+    # generate the hangman animation html tag for the current state
+    animation = generate_animation_html(generate_hangman_animation_frame(state))
     
     # create a string that shows the letters that were already guessed
     guessed_display  = "Guessed Letters: "
@@ -130,8 +117,7 @@ def game_page(state: State) -> Page:
     # page setup
     return Page(state, [
         "Guess a Letter!",
-        Image(f"hangman{str(state.wrong_guesses)}.png"),
-        word_display,
+        animation,
         TextBox("guess"),
         Button("Go", check_guess),
         guessed_display
@@ -320,7 +306,7 @@ def generate_hangman_animation_frame(state: State) -> PIL.Image:
     draw.line((
         (HANGMAN_XCENTER, HANGMAN_LEG_TOP),
         (HANGMAN_XCENTER + HANGMAN_LEG_LENGTH, HANGMAN_LEG_TOP + HANGMAN_LEG_LENGTH)
-    ), fill=body_part_colors[4], width=HANGMAN_LINE_THICKNESS+1)
+    ), fill=body_part_colors[5], width=HANGMAN_LINE_THICKNESS+1)
 
     # torso
     draw.line((
@@ -441,13 +427,13 @@ assert_equal(has_lost(State("", "DRAFTER", [], 5, [])), False)
 
 default_state = State(
     "", # name
-    "QUESTION", # word
-    ['Q', 'I', 'T', 'U'], # guessed_letters
-    3,  # wrong_guesses
+    "", # word
+    [], # guessed_letters
+    0,  # wrong_guesses
     []  # previous_games
 )
 
 frame = generate_hangman_animation_frame(default_state)
 frame.save("hangman.png")
 
-# start_server(default_state)
+start_server(default_state)
