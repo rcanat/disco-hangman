@@ -33,12 +33,20 @@ HANGMAN_LINE_THICKNESS = 5
 HANGMAN_XCENTER = GALLOWS_BASE_XCENTER - GALLOWS_CROSSBEAM_LENGTH
 HANGMAN_YTOP = GALLOWS_BASE_YPOS - GALLOWS_POST_LENGTH + GALLOWS_ROPE_LENGTH
 HANGMAN_HEAD_RADIUS = 26
+HANGMAN_MOUTH_YPOS = HANGMAN_YTOP + HANGMAN_HEAD_RADIUS + 8
+HANGMAN_MOUTH_RADIUS = 8
 HANGMAN_TORSO_TOP = HANGMAN_YTOP + 2 * HANGMAN_HEAD_RADIUS
 HANGMAN_TORSO_LENGTH = 100
 HANGMAN_ARM_TOP = HANGMAN_TORSO_TOP + 16
 HANGMAN_ARM_LENGTH = 33
 HANGMAN_LEG_TOP = HANGMAN_TORSO_TOP + HANGMAN_TORSO_LENGTH
 HANGMAN_LEG_LENGTH = 33
+
+SUNGLASSES_YPOS = HANGMAN_YTOP + HANGMAN_HEAD_RADIUS - 5
+SUNGLASSES_BRIDGE_RADIUS = 3
+SUNGLASSES_LENS_WIDTH = 16
+SUNGLASSES_LENS_HEIGHT = 16
+SUNGLASSES_FRAME_RADIUS = SUNGLASSES_BRIDGE_RADIUS + SUNGLASSES_LENS_WIDTH + 3
 
 WORD_LEFT_PAD = 33
 LETTER_BLANK_THICKNESS = 4
@@ -281,7 +289,7 @@ def generate_hangman_animation_frame(state: State) -> PIL.Image:
         # rope
         (HANGMAN_XCENTER, HANGMAN_YTOP)
 
-    ), fill="black", width=GALLOWS_LINE_THICKNESS)
+    ), fill="black", width=GALLOWS_LINE_THICKNESS, joint="curve")
 
     # generate a list with the colors to draw each body part
     # this is indexed by the order the body parts change color
@@ -327,6 +335,31 @@ def generate_hangman_animation_frame(state: State) -> PIL.Image:
         outline=body_part_colors[0],
         width=HANGMAN_LINE_THICKNESS
     )
+
+    # mouth
+    draw.line((
+        (HANGMAN_XCENTER - HANGMAN_MOUTH_RADIUS, HANGMAN_MOUTH_YPOS),
+        (HANGMAN_XCENTER + HANGMAN_MOUTH_RADIUS, HANGMAN_MOUTH_YPOS)
+    ), fill=body_part_colors[0], width=2)
+    
+    # give him sunglasses because he's chill like that
+    # bridge
+    draw.line((
+        (HANGMAN_XCENTER - SUNGLASSES_FRAME_RADIUS, SUNGLASSES_YPOS),
+        (HANGMAN_XCENTER + SUNGLASSES_FRAME_RADIUS, SUNGLASSES_YPOS)
+    ), fill=body_part_colors[0], width=2)
+
+    # left lens
+    draw.chord((
+        (HANGMAN_XCENTER - SUNGLASSES_BRIDGE_RADIUS - SUNGLASSES_LENS_WIDTH, SUNGLASSES_YPOS - SUNGLASSES_LENS_HEIGHT/2),
+        (HANGMAN_XCENTER - SUNGLASSES_BRIDGE_RADIUS, SUNGLASSES_YPOS + SUNGLASSES_LENS_HEIGHT/2)
+    ), start=0, end=180, fill=body_part_colors[0])
+
+    # right lens
+    draw.chord((
+        (HANGMAN_XCENTER + SUNGLASSES_BRIDGE_RADIUS, SUNGLASSES_YPOS - SUNGLASSES_LENS_HEIGHT/2),
+        (HANGMAN_XCENTER + SUNGLASSES_BRIDGE_RADIUS + SUNGLASSES_LENS_WIDTH, SUNGLASSES_YPOS + SUNGLASSES_LENS_HEIGHT/2)
+    ), start=0, end=180, fill=body_part_colors[0])
 
     # draw all of the letters and blanks
     for i, letter in enumerate(state.word):
