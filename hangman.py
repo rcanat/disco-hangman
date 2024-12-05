@@ -5,6 +5,7 @@ from bakery import assert_equal
 from dataclasses import dataclass
 from string import ascii_uppercase
 import random
+import math
 import io
 import base64
 import PIL
@@ -29,6 +30,8 @@ GALLOWS_CROSSBEAM_LENGTH = 133
 GALLOWS_ROPE_LENGTH = 33
 GALLOWS_SUPPORT_SIZE = 33
 
+HANGMAN_SILHOUETTE_COLOR = "lightgray"
+HANGMAN_SOLID_COLOR = "tomato"
 HANGMAN_LINE_THICKNESS = 5
 HANGMAN_XCENTER = GALLOWS_BASE_XCENTER - GALLOWS_CROSSBEAM_LENGTH
 HANGMAN_YTOP = GALLOWS_BASE_YPOS - GALLOWS_POST_LENGTH + GALLOWS_ROPE_LENGTH
@@ -48,12 +51,17 @@ SUNGLASSES_LENS_WIDTH = 16
 SUNGLASSES_LENS_HEIGHT = 16
 SUNGLASSES_FRAME_RADIUS = SUNGLASSES_BRIDGE_RADIUS + SUNGLASSES_LENS_WIDTH + 3
 
+WORD_COLOR = "tomato"
 WORD_LEFT_PAD = 33
 LETTER_BLANK_THICKNESS = 4
 LETTER_WIDTH = 33
 LETTER_SPACING = 17
-LETTER_BLANK_YPOS = IMAGE_HEIGHT - 17
-LETTER_YPOS = LETTER_BLANK_YPOS - 8
+LETTER_BLANK_YPOS = IMAGE_HEIGHT - 33
+
+NUM_FRAMES = 32
+FRAME_DURATION = 50
+LETTER_WAVE_HEIGHT = 9
+LETTER_WAVE_DELAY = 3
 
 
 @dataclass
@@ -106,9 +114,9 @@ def initialize_game(state: State, name: str) -> Page:
 @route
 def game_page(state: State) -> Page:
     """The main game page where the user can guess letters"""
-    
-    # generate the hangman animation html tag for the current state
-    animation = generate_animation_html(generate_hangman_animation_frame(state))
+
+    # generate the animation html for the current state
+    animation = generate_animation_html(make_animation(state))
     
     # create a string that shows the letters that were already guessed
     guessed_display  = "Guessed Letters: "
@@ -193,7 +201,8 @@ def is_valid_guess(guessed_letters: list[str], guess: str) -> bool:
     Returns:
         bool: Whether or not the guess is valid
     """    
-    # generate a list of all letters that were not guessed
+
+    # generate a list of uppercase letters that were not guessed
     valid_letters = [l for l in ascii_uppercase if l not in guessed_letters]
     
     # check if the guess is valid
@@ -228,24 +237,26 @@ def has_lost(state: State) -> bool:
     return state.wrong_guesses == MAX_GUESSES
 
 
-def generate_hangman_animation(state: State) -> PIL.Image:
+def make_animation(state: State) -> list[PIL.Image]:
     """Based on the given State, generates a full animation to display the
     current hangman.
     
     Args:
         state (State): The current State of the site
     Returns:
-        PIL.Image: The generated full animation
+        list[PIL.Image]: The generated full animation, where each Image is an
+                         individual frame
     """
-    pass
+    return [make_animation_frame(state, i) for i in range(NUM_FRAMES)]
 
 
-def generate_hangman_animation_frame(state: State) -> PIL.Image:
+def make_animation_frame(state: State, frame_num: int) -> PIL.Image:
     """Based on the given State, generates a single frame to display the
     current hangman.
 
     Args:
         state (State): The current State of the site
+        frame_num (int): The frame in the animation sequence to generate
     Returns:
         PIL.Image: The generated animation frame
     """
@@ -279,8 +290,8 @@ def generate_hangman_animation_frame(state: State) -> PIL.Image:
 
     # generate a list with the colors to draw each body part
     # this is indexed by the order the body parts change color
-    body_part_colors  = ["tomato"] * state.wrong_guesses
-    body_part_colors += ["lightgray"]  * (MAX_GUESSES - state.wrong_guesses)
+    body_part_colors  = [HANGMAN_SOLID_COLOR] * state.wrong_guesses
+    body_part_colors += [HANGMAN_SILHOUETTE_COLOR] * (MAX_GUESSES - state.wrong_guesses)
 
     # draw the hangman - head and torso are drawn last so they are on top
 
@@ -353,16 +364,25 @@ def generate_hangman_animation_frame(state: State) -> PIL.Image:
         # the leftmost x position of this letter's blank
         letter_start_pos = WORD_LEFT_PAD + i * (LETTER_WIDTH + LETTER_SPACING)
 
+        # the position in the sine wave for this letter
+        wave_func_pos = (math.pi * 2 / NUM_FRAMES) * (frame_num + i * LETTER_WAVE_DELAY)
+
+        # the float amount that the y pos should be adjusted for this frame
+        wave_height_adjustment = LETTER_WAVE_HEIGHT * math.sin(wave_func_pos)
+
+        # the int y position for the letter's blank
+        adjusted_letter_ypos = LETTER_BLANK_YPOS - round(wave_height_adjustment)
+
         # draw the blank
         draw.line((
-            (letter_start_pos, LETTER_BLANK_YPOS),
-            (letter_start_pos + LETTER_WIDTH, LETTER_BLANK_YPOS)
+            (letter_start_pos, adjusted_letter_ypos),
+            (letter_start_pos + LETTER_WIDTH, adjusted_letter_ypos)
         ), fill="black", width=LETTER_BLANK_THICKNESS)
 
         # draw the letter, if it was guessed
         if letter in state.guessed_letters:
             draw.text(
-                xy=(letter_start_pos + 0.5 * LETTER_WIDTH, LETTER_BLANK_YPOS),
+                xy=(letter_start_pos + 0.5 * LETTER_WIDTH, adjusted_letter_ypos),
                 text=letter,
                 fill="tomato",
                 anchor="md",
@@ -373,31 +393,39 @@ def generate_hangman_animation_frame(state: State) -> PIL.Image:
     return frame
 
 
-def generate_animation_uri(animation: PIL.Image) -> str:
+def generate_animation_uri(animation: list[PIL.Image]) -> str:
     """Given a hangman animation, generates a URI for accessing it.
     
     Args:
-        animation (PIL.Image): The hangman animation
+        animation (list[PIL.Image]): The hangman animation, where each Image
+                                     is a single frame
     Returns:
         str: The URI for the animation
     """
     # create a new bytes buffer and save the animation to it
     buffer = io.BytesIO()
-    animation.save(buffer, "PNG")
+    animation[0].save(
+        fp=buffer,
+        format="GIF",
+        save_all=True,
+        append_images=animation[1:],
+        duration=FRAME_DURATION,
+        loop=0
+    )
 
     # encode the byte data to base64 for use in the URI
     animation_data = buffer.getvalue()
     base64_data = base64.b64encode(animation_data).decode("utf-8")
 
     # return the URI
-    return "data:image/png;base64," + base64_data
+    return "data:image/gif;base64," + base64_data
 
 
-def generate_animation_html(animation: PIL.Image) -> str:
+def generate_animation_html(animation: list[PIL.Image]) -> str:
     """Given a hangman animation, generates an html tag to embed it to a Page.
     
     Args:
-        animation (PIL.Image): The hangman animation
+        animation (list[PIL.Image]): The hangman animation
     Returns:
         str: The html tag for the animation
     """
@@ -422,18 +450,29 @@ assert_equal(has_lost(State("", "ABSTRACT", [], 6, [])), True)
 assert_equal(has_lost(State("", "DRAFTER", [], 5, [])), False)
 
 
+# save an animation with the given state (for testing purposes)
+# animation = make_animation(State(
+#     name="",
+#     word="BLUEBERRY",
+#     guessed_letters=['B', 'R', 'E'],
+#     wrong_guesses=4,
+#     previous_games=[]
+# ))
+
+# animation[0].save(
+#     fp="hangman.gif",
+#     format="GIF",
+#     save_all=True,
+#     append_images=animation[1:],
+#     duration=FRAME_DURATION,
+#     loop=0
+# )
+
 # start the site server
-# hide_debug_information()
-
-default_state = State(
-    "", # name
-    "", # word
-    [], # guessed_letters
-    0,  # wrong_guesses
-    []  # previous_games
-)
-
-frame = generate_hangman_animation_frame(default_state)
-frame.save("hangman.png")
-
-start_server(default_state)
+start_server(State(
+    name="",
+    word="",
+    guessed_letters=[],
+    wrong_guesses=0, 
+    previous_games=[] 
+))
