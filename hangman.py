@@ -19,6 +19,7 @@ IMAGE_WIDTH = 500
 IMAGE_HEIGHT = 400
 IMAGE_SIZE = (IMAGE_WIDTH, IMAGE_HEIGHT)
 
+GALLOWS_LINE_THICKNESS = 5
 GALLOWS_BASE_XCENTER = IMAGE_WIDTH - 100
 GALLOWS_BASE_YPOS = IMAGE_HEIGHT - 100
 GALLOWS_BASE_LENGTH_LEFT = 67
@@ -28,10 +29,19 @@ GALLOWS_CROSSBEAM_LENGTH = 133
 GALLOWS_ROPE_LENGTH = 33
 GALLOWS_SUPPORT_SIZE = 33
 
+HANGMAN_LINE_THICKNESS = 5
 HANGMAN_XCENTER = GALLOWS_BASE_XCENTER - GALLOWS_CROSSBEAM_LENGTH
 HANGMAN_YTOP = GALLOWS_BASE_YPOS - GALLOWS_POST_LENGTH + GALLOWS_ROPE_LENGTH
+HANGMAN_HEAD_RADIUS = 26
+HANGMAN_TORSO_TOP = HANGMAN_YTOP + 2 * HANGMAN_HEAD_RADIUS
+HANGMAN_TORSO_LENGTH = 100
+HANGMAN_ARM_TOP = HANGMAN_TORSO_TOP + 16
+HANGMAN_ARM_LENGTH = 33
+HANGMAN_LEG_TOP = HANGMAN_TORSO_TOP + HANGMAN_TORSO_LENGTH
+HANGMAN_LEG_LENGTH = 33
 
 WORD_LEFT_PAD = 33
+LETTER_BLANK_THICKNESS = 4
 LETTER_WIDTH = 33
 LETTER_SPACING = 17
 LETTER_BLANK_YPOS = IMAGE_HEIGHT - 17
@@ -271,7 +281,52 @@ def generate_hangman_animation_frame(state: State) -> PIL.Image:
         # rope
         (HANGMAN_XCENTER, HANGMAN_YTOP)
 
-    ), fill="black", width=5)
+    ), fill="black", width=GALLOWS_LINE_THICKNESS)
+
+    # generate a list with the colors to draw each body part
+    # this is indexed by the order the body parts change color
+    body_part_colors  = ["tomato"] * state.wrong_guesses
+    body_part_colors += ["lightgray"]  * (MAX_GUESSES - state.wrong_guesses)
+
+    # draw the hangman - head and torso are drawn last so they are on top
+
+    # left arm
+    draw.line((
+        (HANGMAN_XCENTER, HANGMAN_ARM_TOP),
+        (HANGMAN_XCENTER - HANGMAN_ARM_LENGTH, HANGMAN_ARM_TOP + HANGMAN_ARM_LENGTH)
+    ), fill=body_part_colors[2], width=HANGMAN_LINE_THICKNESS+1)
+
+    # right arm
+    draw.line((
+        (HANGMAN_XCENTER, HANGMAN_ARM_TOP),
+        (HANGMAN_XCENTER + HANGMAN_ARM_LENGTH, HANGMAN_ARM_TOP + HANGMAN_ARM_LENGTH)
+    ), fill=body_part_colors[3], width=HANGMAN_LINE_THICKNESS+1)
+
+    # left leg
+    draw.line((
+        (HANGMAN_XCENTER, HANGMAN_LEG_TOP),
+        (HANGMAN_XCENTER - HANGMAN_LEG_LENGTH, HANGMAN_LEG_TOP + HANGMAN_LEG_LENGTH)
+    ), fill=body_part_colors[4], width=HANGMAN_LINE_THICKNESS+1)
+
+    # right leg
+    draw.line((
+        (HANGMAN_XCENTER, HANGMAN_LEG_TOP),
+        (HANGMAN_XCENTER + HANGMAN_LEG_LENGTH, HANGMAN_LEG_TOP + HANGMAN_LEG_LENGTH)
+    ), fill=body_part_colors[4], width=HANGMAN_LINE_THICKNESS+1)
+
+    # torso
+    draw.line((
+        (HANGMAN_XCENTER, HANGMAN_TORSO_TOP),
+        (HANGMAN_XCENTER, HANGMAN_TORSO_TOP + HANGMAN_TORSO_LENGTH)
+    ), fill=body_part_colors[1], width=HANGMAN_LINE_THICKNESS)
+
+    # head
+    draw.circle(
+        xy=(HANGMAN_XCENTER, HANGMAN_YTOP + HANGMAN_HEAD_RADIUS),
+        radius=HANGMAN_HEAD_RADIUS,
+        outline=body_part_colors[0],
+        width=HANGMAN_LINE_THICKNESS
+    )
 
     # draw all of the letters and blanks
     for i, letter in enumerate(state.word):
@@ -283,7 +338,7 @@ def generate_hangman_animation_frame(state: State) -> PIL.Image:
         draw.line((
             (letter_start_pos, LETTER_BLANK_YPOS),
             (letter_start_pos + LETTER_WIDTH, LETTER_BLANK_YPOS)
-        ), fill="black", width=3)
+        ), fill="black", width=LETTER_BLANK_THICKNESS)
 
         # draw the letter, if it was guessed
         if letter in state.guessed_letters:
@@ -355,7 +410,7 @@ default_state = State(
     "", # name
     "QUESTION", # word
     ['Q', 'I', 'T', 'U'], # guessed_letters
-    0,  # wrong_guesses
+    3,  # wrong_guesses
     []  # previous_games
 )
 
