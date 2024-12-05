@@ -285,6 +285,17 @@ def generate_hangman_animation_frame(state: State) -> PIL.Image:
             (letter_start_pos + LETTER_WIDTH, LETTER_BLANK_YPOS)
         ), fill="black", width=3)
 
+        # draw the letter, if it was guessed
+        if letter in state.guessed_letters:
+            draw.text(
+                xy=(letter_start_pos + 0.5 * LETTER_WIDTH, LETTER_BLANK_YPOS),
+                text=letter,
+                fill="tomato",
+                anchor="md",
+                stroke_width=1,
+                font_size=LETTER_WIDTH
+            )
+
     return frame
 
 
@@ -342,8 +353,8 @@ assert_equal(has_lost(State("", "DRAFTER", [], 5, [])), False)
 
 default_state = State(
     "", # name
-    "BLUEBERRY", # word
-    [], # guessed_letters
+    "QUESTION", # word
+    ['Q', 'I', 'T', 'U'], # guessed_letters
     0,  # wrong_guesses
     []  # previous_games
 )
@@ -351,4 +362,4 @@ default_state = State(
 frame = generate_hangman_animation_frame(default_state)
 frame.save("hangman.png")
 
-start_server(default_state)
+# start_server(default_state)
