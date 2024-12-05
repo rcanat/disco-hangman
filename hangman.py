@@ -15,21 +15,27 @@ MAX_GUESSES = 6
 WORD_LIST = ["STINKY", "CARPET", "PYTHON", "HAMBURGER", "BUCKET"]
 
 # graphics constants
-IMAGE_WIDTH = 300
-IMAGE_HEIGHT = 300
+IMAGE_WIDTH = 500
+IMAGE_HEIGHT = 400
 IMAGE_SIZE = (IMAGE_WIDTH, IMAGE_HEIGHT)
 
-GALLOWS_BASE_XCENTER = IMAGE_WIDTH - 67
-GALLOWS_BASE_YPOS = 200
-GALLOWS_BASE_LENGTH_LEFT = 33
-GALLOWS_BASE_LENGTH_RIGHT = 33
-GALLOWS_POST_LENGTH = 167
-GALLOWS_CROSSBEAM_LENGTH = 100
+GALLOWS_BASE_XCENTER = IMAGE_WIDTH - 100
+GALLOWS_BASE_YPOS = IMAGE_HEIGHT - 100
+GALLOWS_BASE_LENGTH_LEFT = 67
+GALLOWS_BASE_LENGTH_RIGHT = 67
+GALLOWS_POST_LENGTH = 267
+GALLOWS_CROSSBEAM_LENGTH = 133
 GALLOWS_ROPE_LENGTH = 33
 GALLOWS_SUPPORT_SIZE = 33
 
 HANGMAN_XCENTER = GALLOWS_BASE_XCENTER - GALLOWS_CROSSBEAM_LENGTH
 HANGMAN_YTOP = GALLOWS_BASE_YPOS - GALLOWS_POST_LENGTH + GALLOWS_ROPE_LENGTH
+
+WORD_LEFT_PAD = 33
+LETTER_WIDTH = 33
+LETTER_SPACING = 17
+LETTER_BLANK_YPOS = IMAGE_HEIGHT - 17
+LETTER_YPOS = LETTER_BLANK_YPOS - 8
 
 
 @dataclass
@@ -218,15 +224,16 @@ def has_lost(state: State) -> bool:
     return state.wrong_guesses == MAX_GUESSES
 
 
-def generate_hangman_animation(state: State) -> None:
-    """Based on the given State, generates an animation to display the current
-    hangman. This animation is saved as hangman.gif.
+def generate_hangman_animation(state: State) -> PIL.Image:
+    """Based on the given State, generates a full animation to display the
+    current hangman.
     
     Args:
         state (State): The current State of the site
+    Returns:
+        PIL.Image: The generated full animation
     """
-    frame = generate_hangman_animation_frame(state)
-    frame.save("hangman.png")
+    pass
 
 
 def generate_hangman_animation_frame(state: State) -> PIL.Image:
@@ -264,7 +271,19 @@ def generate_hangman_animation_frame(state: State) -> PIL.Image:
         # rope
         (HANGMAN_XCENTER, HANGMAN_YTOP)
 
-    ), "black", 5)
+    ), fill="black", width=5)
+
+    # draw all of the letters and blanks
+    for i, letter in enumerate(state.word):
+
+        # the leftmost x position of this letter's blank
+        letter_start_pos = WORD_LEFT_PAD + i * (LETTER_WIDTH + LETTER_SPACING)
+
+        # draw the blank
+        draw.line((
+            (letter_start_pos, LETTER_BLANK_YPOS),
+            (letter_start_pos + LETTER_WIDTH, LETTER_BLANK_YPOS)
+        ), fill="black", width=3)
 
     return frame
 
@@ -321,13 +340,15 @@ assert_equal(has_lost(State("", "DRAFTER", [], 5, [])), False)
 # start the site server
 # hide_debug_information()
 
-new_state = State(
+default_state = State(
     "", # name
-    "", # word
+    "BLUEBERRY", # word
     [], # guessed_letters
     0,  # wrong_guesses
     []  # previous_games
 )
 
-# generate_hangman_animation(new_state)
-start_server(new_state)
+frame = generate_hangman_animation_frame(default_state)
+frame.save("hangman.png")
+
+start_server(default_state)
