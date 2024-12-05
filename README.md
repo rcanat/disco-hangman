@@ -1,2 +1,2 @@
-# disco hangman
+# epic hangman
  
