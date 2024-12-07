@@ -1,5 +1,3 @@
-import PIL.Image
-import PIL.ImageDraw
 from drafter import *
 from bakery import assert_equal
 from dataclasses import dataclass
@@ -8,10 +6,11 @@ import random
 import math
 import io
 import base64
-import PIL
+import PIL.Image
+import PIL.ImageDraw
 
 
-# general constants
+# gameplay constants
 MAX_GUESSES = 6
 WORD_LIST = ["STINKY", "CARPET", "PYTHON", "HAMBURGER", "BUCKET"]
 
@@ -245,7 +244,7 @@ def make_animation(state: State) -> list[PIL.Image]:
         state (State): The current State of the site
     Returns:
         list[PIL.Image]: The generated full animation, where each Image is an
-                         individual frame
+        individual frame
     """
     return [make_animation_frame(state, i) for i in range(NUM_FRAMES)]
 
@@ -348,14 +347,18 @@ def make_animation_frame(state: State, frame_num: int) -> PIL.Image:
 
     # left lens
     draw.chord((
-        (HANGMAN_XCENTER - SUNGLASSES_BRIDGE_RADIUS - SUNGLASSES_LENS_WIDTH, SUNGLASSES_YPOS - SUNGLASSES_LENS_HEIGHT/2),
-        (HANGMAN_XCENTER - SUNGLASSES_BRIDGE_RADIUS, SUNGLASSES_YPOS + SUNGLASSES_LENS_HEIGHT/2)
+        (HANGMAN_XCENTER - SUNGLASSES_BRIDGE_RADIUS - SUNGLASSES_LENS_WIDTH,
+         SUNGLASSES_YPOS - SUNGLASSES_LENS_HEIGHT / 2),
+        (HANGMAN_XCENTER - SUNGLASSES_BRIDGE_RADIUS,
+         SUNGLASSES_YPOS + SUNGLASSES_LENS_HEIGHT / 2)
     ), start=0, end=180, fill=body_part_colors[0])
 
     # right lens
     draw.chord((
-        (HANGMAN_XCENTER + SUNGLASSES_BRIDGE_RADIUS, SUNGLASSES_YPOS - SUNGLASSES_LENS_HEIGHT/2),
-        (HANGMAN_XCENTER + SUNGLASSES_BRIDGE_RADIUS + SUNGLASSES_LENS_WIDTH, SUNGLASSES_YPOS + SUNGLASSES_LENS_HEIGHT/2)
+        (HANGMAN_XCENTER + SUNGLASSES_BRIDGE_RADIUS,
+         SUNGLASSES_YPOS - SUNGLASSES_LENS_HEIGHT / 2),
+        (HANGMAN_XCENTER + SUNGLASSES_BRIDGE_RADIUS + SUNGLASSES_LENS_WIDTH,
+         SUNGLASSES_YPOS + SUNGLASSES_LENS_HEIGHT / 2)
     ), start=0, end=180, fill=body_part_colors[0])
 
     # draw all of the letters and blanks
@@ -382,9 +385,10 @@ def make_animation_frame(state: State, frame_num: int) -> PIL.Image:
         # draw the letter, if it was guessed
         if letter in state.guessed_letters:
             draw.text(
-                xy=(letter_start_pos + 0.5 * LETTER_WIDTH, adjusted_letter_ypos),
+                xy=(letter_start_pos + 0.5 * LETTER_WIDTH,
+                    adjusted_letter_ypos),
                 text=letter,
-                fill="tomato",
+                fill=WORD_COLOR,
                 anchor="md",
                 stroke_width=1,
                 font_size=LETTER_WIDTH
@@ -398,7 +402,7 @@ def generate_animation_uri(animation: list[PIL.Image]) -> str:
     
     Args:
         animation (list[PIL.Image]): The hangman animation, where each Image
-                                     is a single frame
+        is a single frame
     Returns:
         str: The URI for the animation
     """
@@ -468,7 +472,13 @@ assert_equal(has_lost(State("", "DRAFTER", [], 5, [])), False)
 #     loop=0
 # )
 
+
 # start the site server
+
+hide_debug_information()
+set_website_title("Epic Hangman")
+set_website_framed(False)
+
 start_server(State(
     name="",
     word="",
